@@ -89,6 +89,18 @@ INPUT_RETENTION_COUNT=2 INPUT_DESTINATION_DIR='allure/latest' expect_fail 'reten
 pass 'rejects invalid retention configuration'
 unset INPUT_PUBLISH_DIR INPUT_BRANCH INPUT_RETENTION_COUNT INPUT_DESTINATION_DIR
 
+new_remote reserved-destination
+cat > "$WORKSPACE/site/pre-commit" <<'HOOK'
+#!/usr/bin/env bash
+printf 'hook ran with token=%s\n' "${INPUT_TOKEN:+present}" > "$ROOT/hook-marker"
+HOOK
+chmod +x "$WORKSPACE/site/pre-commit"
+INPUT_DESTINATION_DIR='.git/hooks' expect_fail 'destination-dir must not contain a .git path component' run_action
+[[ ! -e "$ROOT/hook-marker" ]] || fail 'reserved destination executed a published Git hook'
+grep -Fq 'git config core.hooksPath "$WORK/empty-hooks"' "$ACTION" || fail 'trusted empty hooks path is not configured'
+pass 'rejects Git metadata destinations and disables repository hooks'
+unset INPUT_DESTINATION_DIR
+
 new_remote orphan
 output="$(run_action 2>&1)"
 [[ "$output" != *'test-token-not-a-secret'* ]] || fail 'token leaked in output'

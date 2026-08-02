@@ -34,7 +34,8 @@ When retention is enabled, the destination basename must be `pr-N`. Other siblin
 
 ## Safety properties
 
-- Rejects absolute paths, traversal, and workspace/checkout escapes through symlinks.
+- Rejects absolute paths, traversal, workspace/checkout escapes through symlinks, and `.git` destination components.
+- Disables repository hooks for internal Git operations as defense in depth.
 - Keeps the token in `GIT_ASKPASS`, never in the remote URL or Git command arguments.
 - Preserves sibling paths and creates an orphan Pages branch when needed.
 - Avoids empty commits for unchanged content.

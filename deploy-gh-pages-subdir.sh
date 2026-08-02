@@ -22,6 +22,9 @@ validate_relative_path() {
 
 validate_relative_path "$INPUT_PUBLISH_DIR" "publish-dir"
 validate_relative_path "$INPUT_DESTINATION_DIR" "destination-dir"
+case "$INPUT_DESTINATION_DIR" in
+  .git|.git/*|*/.git|*/.git/*) error "destination-dir must not contain a .git path component" ;;
+esac
 
 RETENTION_COUNT="${INPUT_RETENTION_COUNT:-0}"
 [[ "$RETENTION_COUNT" =~ ^[0-9]+$ ]] || error "retention-count must be a non-negative integer"
@@ -71,6 +74,12 @@ REPO_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}.git"
 git clone --quiet --no-checkout "$REPO_URL" "$WORK/repo"
 R="$WORK/repo"
 cd "$R"
+
+# Keep repository content from installing or replacing hooks that run with the
+# publication token in scope. This remains a defense if destination validation
+# regresses in a future change.
+mkdir "$WORK/empty-hooks"
+git config core.hooksPath "$WORK/empty-hooks"
 
 if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
   git fetch --quiet origin "$BRANCH"
