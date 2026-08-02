@@ -41,13 +41,18 @@ jobs:
           shellcheck deploy-gh-pages-subdir.sh tests/integration.sh tests/release-please-schema-contract.sh
           actionlint
       - name: Validate Release Please config schema
+        env:
+          TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+          REPO_URL: https://github.com/${{ github.repository }}
         run: |
           npx --yes --package "release-please@${RELEASE_PLEASE_VERSION}" release-please debug-config \
             --config-file .github/release-please/config.json \
             --manifest-file .github/release-please/manifest.json \
-            --repo-url https://github.com/${{ github.repository }} \
-            --target-branch "$GITHUB_SHA"
+            --repo-url "$REPO_URL" \
+            --target-branch "$TARGET_BRANCH"
       - name: Validate Release Please schema contract and regression cases
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           bash tests/release-please-schema-contract.sh
       - name: Validate Release Please bootstrap and manifest transition guard

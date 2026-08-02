@@ -23,6 +23,7 @@ def fail(message: str) -> None:
 
 
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+GIT_REF = re.compile(r"^[0-9a-f]{40}$")
 
 
 def semver_to_tuple(version: str) -> Tuple[int, int, int]:
@@ -49,7 +50,21 @@ def package_version(payload: Dict, *, path: str) -> str:
     return version
 
 
+def validate_git_sha(ref: str) -> str:
+    if not isinstance(ref, str) or not GIT_REF.fullmatch(ref):
+        fail(f"Unsafe or invalid git revision provided for manifest load: {ref!r}")
+    return ref
+
+
+def validate_manifest_path(path: str) -> str:
+    if ":" in path or "\x00" in path:
+        fail(f"Unsafe manifest path provided: {path!r}")
+    return path
+
+
 def load_manifest_from_ref(ref: str, *, manifest_path: str) -> Dict:
+    ref = validate_git_sha(ref)
+    manifest_path = validate_manifest_path(manifest_path)
     obj = f"{ref}:{manifest_path}"
     result = subprocess.run(
         ["git", "show", obj],
