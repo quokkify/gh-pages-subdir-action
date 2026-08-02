@@ -97,7 +97,8 @@ HOOK
 chmod +x "$WORKSPACE/site/pre-commit"
 INPUT_DESTINATION_DIR='.git/hooks' expect_fail 'destination-dir must not contain a .git path component' run_action
 [[ ! -e "$ROOT/hook-marker" ]] || fail 'reserved destination executed a published Git hook'
-grep -Fq 'git config core.hooksPath "$WORK/empty-hooks"' "$ACTION" || fail 'trusted empty hooks path is not configured'
+grep -Fq 'git config core.hooksPath' "$ACTION" || fail 'trusted empty hooks path is not configured'
+grep -Fq 'empty-hooks' "$ACTION" || fail 'trusted hooks path is not outside the repository'
 pass 'rejects Git metadata destinations and disables repository hooks'
 unset INPUT_DESTINATION_DIR
 
