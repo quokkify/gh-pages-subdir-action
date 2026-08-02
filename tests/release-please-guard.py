@@ -14,10 +14,13 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, NoReturn, Tuple
+
+BOOTSTRAP_VERSION = "0.0.0"
+INITIAL_VERSION = "0.1.0"
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     print(message, file=sys.stderr)
     raise SystemExit(1)
 
@@ -40,7 +43,6 @@ def load_json(path: Path) -> Dict:
         fail(f"Unable to read JSON file {path}: {err}")
     except ValueError as err:
         fail(f"Invalid JSON in {path}: {err}")
-    return {}
 
 
 def package_version(payload: Dict, *, path: str) -> str:
@@ -78,7 +80,6 @@ def load_manifest_from_ref(ref: str, *, manifest_path: str) -> Dict:
         return json.loads(result.stdout)
     except ValueError as err:
         fail(f"Manifest at {ref!r} is not valid JSON: {err}")
-    return {}
 
 
 def check_transition(base_version: str, head_version: str) -> tuple[bool, str]:
@@ -89,16 +90,25 @@ def check_transition(base_version: str, head_version: str) -> tuple[bool, str]:
     if not head_match:
         return False, f"Invalid head semver format: {head_version!r}"
 
-    base = (int(base_match.group(1)), int(base_match.group(2)), int(base_match.group(3)))
-    head = (int(head_match.group(1)), int(head_match.group(2)), int(head_match.group(3)))
+    base = (
+        int(base_match.group(1)),
+        int(base_match.group(2)),
+        int(base_match.group(3)),
+    )
+    head = (
+        int(head_match.group(1)),
+        int(head_match.group(2)),
+        int(head_match.group(3)),
+    )
 
     if head < base:
         return False, f"Manifest version regression from {base_version} to {head_version} is not allowed"
 
-    if base_version == "0.0.0" and head_version not in ("0.0.0", "0.1.0"):
+    if base_version == BOOTSTRAP_VERSION and head_version not in (BOOTSTRAP_VERSION, INITIAL_VERSION):
         return (
             False,
-            "Bootstrap policy mismatch: base 0.0.0 may only remain 0.0.0 (bootstrap PR) or move to 0.1.0",
+            f"Bootstrap policy mismatch: base {BOOTSTRAP_VERSION} may only remain {BOOTSTRAP_VERSION} "
+            f"(bootstrap PR) or move to {INITIAL_VERSION}",
         )
 
     return True, ""
@@ -129,9 +139,9 @@ def validate_config(config_path: str) -> None:
     initial_version = root_pkg.get("initial-version")
     if not isinstance(initial_version, str):
         fail("Release Please config packages['.'].initial-version must be a string")
-    if initial_version != "0.1.0":
+    if initial_version != INITIAL_VERSION:
         fail(
-            f"Expected release-please initial-version for path '.' to be '0.1.0', got {initial_version!r}"
+            f"Expected release-please initial-version for path '.' to be {INITIAL_VERSION!r}, got {initial_version!r}"
         )
 
 
@@ -169,11 +179,11 @@ def run_guard(config_path: str, manifest_path: str, event_path: str, event_name:
     if not isinstance(pull_request, dict):
         fail("GitHub event payload missing pull_request for pull_request event")
 
-    base = pull_request.get("base")
-    if not isinstance(base, dict):
+    base_payload = pull_request.get("base")
+    if not isinstance(base_payload, dict):
         fail("Unable to read pull_request.base from event payload")
 
-    base_ref = base.get("sha")
+    base_ref = base_payload.get("sha")
     if not isinstance(base_ref, str):
         fail("Unable to read pull_request.base.sha from event payload")
 
@@ -181,9 +191,9 @@ def run_guard(config_path: str, manifest_path: str, event_path: str, event_name:
     validate_manifest_schema(head, manifest_path=manifest_path)
     head_version = package_version(head, path=".")
 
-    base = load_manifest_from_ref(base_ref, manifest_path=manifest_path)
-    validate_manifest_schema(base, manifest_path=f"{base_ref}:{manifest_path}")
-    base_version = package_version(base, path=".")
+    base_manifest = load_manifest_from_ref(base_ref, manifest_path=manifest_path)
+    validate_manifest_schema(base_manifest, manifest_path=f"{base_ref}:{manifest_path}")
+    base_version = package_version(base_manifest, path=".")
 
     validate_transition(base_version, head_version)
     print(
@@ -196,27 +206,33 @@ def simulate() -> None:
     total = 0
 
     cases = [
-        ("bootstrap config PR keeps manifest unchanged at 0.0.0", "0.0.0", "0.0.0", True),
-        ("initial release PR moves 0.0.0 -> 0.1.0", "0.0.0", "0.1.0", True),
-        ("reject bootstrap jump 0.0.0 -> 1.0.0", "0.0.0", "1.0.0", False),
-        ("post-release config PR keeps 0.1.0 unchanged", "0.1.0", "0.1.0", True),
-        ("future release 0.1.0 -> 0.2.0", "0.1.0", "0.2.0", True),
-        ("future release 0.1.0 -> 1.0.0", "0.1.0", "1.0.0", True),
-        ("backward transition 0.2.0 -> 0.1.0 blocked", "0.2.0", "0.1.0", False),
-        ("malformed version blocked", "0.1.0", "bad", False),
+        (f"bootstrap config PR keeps manifest unchanged at {BOOTSTRAP_VERSION}", BOOTSTRAP_VERSION, BOOTSTRAP_VERSION, True),
+        (
+            f"initial release PR moves {BOOTSTRAP_VERSION} -> {INITIAL_VERSION}",
+            BOOTSTRAP_VERSION,
+            INITIAL_VERSION,
+            True,
+        ),
+        (f"reject bootstrap jump {BOOTSTRAP_VERSION} -> 1.0.0", BOOTSTRAP_VERSION, "1.0.0", False),
+        (f"post-release config PR keeps {INITIAL_VERSION} unchanged", INITIAL_VERSION, INITIAL_VERSION, True),
+        (f"future release {INITIAL_VERSION} -> 0.2.0", INITIAL_VERSION, "0.2.0", True),
+        (f"future release {INITIAL_VERSION} -> 1.0.0", INITIAL_VERSION, "1.0.0", True),
+        ("backward transition 0.2.0 -> 0.1.0 blocked", "0.2.0", INITIAL_VERSION, False),
+        ("malformed version blocked", INITIAL_VERSION, "bad", False),
     ]
 
     for description, base_version, head_version, should_pass in cases:
         total += 1
         try:
-            success, _ = check_transition(base_version, head_version)
-        except SystemExit:
+            success, reason = check_transition(base_version, head_version)
+        except SystemExit as exc:
             success = False
+            reason = str(exc) if str(exc) else "SystemExit raised without a message"
 
         if success != should_pass:
             fail(
                 f"Regression scenario failed: {description}. base={base_version}, head={head_version} "
-                f"expected={should_pass!r}, actual={success!r}"
+                f"expected={should_pass!r}, actual={success!r}, reason={reason}"
             )
 
         pass_count += 1

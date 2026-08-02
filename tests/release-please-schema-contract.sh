@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-RELEASE_PLEASE_VERSION=${RELEASE_PLEASE_VERSION:-16.16.0}
+RELEASE_PLEASE_VERSION=${RELEASE_PLEASE_VERSION:-17.6.0}
 CONFIG_SCHEMA_URL=https://raw.githubusercontent.com/googleapis/release-please/v${RELEASE_PLEASE_VERSION}/schemas/config.json
 MANIFEST_SCHEMA_URL=https://raw.githubusercontent.com/googleapis/release-please/v${RELEASE_PLEASE_VERSION}/schemas/manifest.json
 CONFIG_PATH=${CONFIG_PATH:-.github/release-please/config.json}
