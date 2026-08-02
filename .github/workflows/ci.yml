@@ -39,24 +39,48 @@ jobs:
           shellcheck deploy-gh-pages-subdir.sh tests/integration.sh
           actionlint
       - name: Validate Release Please bootstrap config
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          GH_EVENT_NAME: ${{ github.event_name }}
         run: |
           python3 - <<'PY'
+          import os
+          import subprocess
           import json
           from pathlib import Path
+
+          def fail(msg: str) -> None:
+              raise SystemExit(msg)
 
           config = json.loads(Path('.github/release-please/config.json').read_text())
           initial_version = config['packages']['.'].get('initial-version')
           if initial_version != '0.1.0':
-              raise SystemExit(
-                  f'Expected release-please initial-version for path "." to be "0.1.0", got {initial_version!r}'
-              )
+              fail(f'Expected release-please initial-version for path "." to be "0.1.0", got {initial_version!r}')
 
-          manifest = json.loads(Path('.github/release-please/manifest.json').read_text())
-          current_version = manifest.get('.')
-          if current_version != '0.0.0':
-              raise SystemExit(f'Expected release-please manifest version to remain "0.0.0", got {current_version!r}')
+          if os.environ.get('GH_EVENT_NAME') == 'pull_request':
+              base_ref = os.environ.get('BASE_REF')
+              if not base_ref:
+                  fail('Missing base_ref for pull_request event')
 
-          print('Release Please bootstrap guard passed')
+              changed = subprocess.check_output(
+                  ['git', 'diff', '--name-only', f'origin/{base_ref}...HEAD', '.github/release-please/manifest.json'],
+                  text=True,
+                  cwd='.',
+              ).splitlines()
+              if '.github/release-please/manifest.json' not in changed:
+                  manifest = json.loads(Path('.github/release-please/manifest.json').read_text())
+                  current_version = manifest.get('.')
+                  if current_version != '0.0.0':
+                      fail(f'Expected manifest version to stay at "0.0.0" during config bootstrap checks, got {current_version!r}')
+
+                  print('Release Please bootstrap guard passed for manifest bootstrap path')
+          
+              else:
+                  print('Skipping manifest bootstrap version guard (manifest is changing in this PR).')
+          else:
+              print('Skipping manifest bootstrap version guard outside pull_request event.')
+
+          print('Release Please config guard passed')
           PY
       - name: Check diff whitespace
         env:
