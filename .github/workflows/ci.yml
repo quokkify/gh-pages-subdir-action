@@ -17,6 +17,8 @@ jobs:
     name: Shell and metadata lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RELEASE_PLEASE_VERSION: 16.16.0
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,15 +37,19 @@ jobs:
           install -m 0755 actionlint /usr/local/bin/actionlint
       - name: Validate shell and Action metadata
         run: |
-          bash -n deploy-gh-pages-subdir.sh tests/integration.sh
-          shellcheck deploy-gh-pages-subdir.sh tests/integration.sh
+          bash -n deploy-gh-pages-subdir.sh tests/integration.sh tests/release-please-schema-contract.sh
+          shellcheck deploy-gh-pages-subdir.sh tests/integration.sh tests/release-please-schema-contract.sh
           actionlint
       - name: Validate Release Please config schema
         run: |
-          npx --yes --package release-please@latest release-please debug-config \
+          npx --yes --package "release-please@${RELEASE_PLEASE_VERSION}" release-please debug-config \
             --config-file .github/release-please/config.json \
             --manifest-file .github/release-please/manifest.json \
-            --repo-url https://github.com/quokkify/gh-pages-subdir-action
+            --repo-url https://github.com/${{ github.repository }} \
+            --target-branch "$GITHUB_SHA"
+      - name: Validate Release Please schema contract and regression cases
+        run: |
+          bash tests/release-please-schema-contract.sh
       - name: Validate Release Please bootstrap and manifest transition guard
         env:
           INPUT_EVENT_NAME: ${{ github.event_name }}
