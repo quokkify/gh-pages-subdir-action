@@ -151,7 +151,15 @@ for attempt in 1 2; do
   expected_sha="$(git ls-remote --heads origin "$BRANCH" | awk 'NR == 1 { print $1 }')"
   if [[ -n "$expected_sha" ]]; then
     git fetch --quiet origin "$BRANCH"
-    git rebase --quiet "origin/$BRANCH"
+    if git merge-base HEAD "origin/$BRANCH" >/dev/null 2>&1; then
+      if ! git rebase --quiet "origin/$BRANCH"; then
+        git rebase --abort >/dev/null 2>&1 || true
+        error "unable to rebase onto origin/$BRANCH before publishing $INPUT_DESTINATION_DIR (possible content conflict)"
+      fi
+    elif ! git merge --quiet --no-edit --allow-unrelated-histories "origin/$BRANCH"; then
+      git merge --abort >/dev/null 2>&1 || true
+      error "unable to combine concurrent orphan branch origin/$BRANCH before publishing $INPUT_DESTINATION_DIR (possible content conflict)"
+    fi
     git push --quiet --force-with-lease="refs/heads/$BRANCH:$expected_sha" origin "HEAD:$BRANCH" && exit 0
   else
     git push --quiet --force-with-lease="refs/heads/$BRANCH:" origin "HEAD:$BRANCH" && exit 0
@@ -161,4 +169,4 @@ for attempt in 1 2; do
   fi
 done
 
-error "unable to publish $INPUT_DESTINATION_DIR after a concurrent update"
+error "unable to publish $INPUT_DESTINATION_DIR after two lease-protected push attempts"

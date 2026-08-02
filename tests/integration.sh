@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(mktemp -d)"
+export ROOT
 trap 'rm -rf "$ROOT"' EXIT
 ACTION="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/deploy-gh-pages-subdir.sh"
 REAL_GIT="$(command -v git)"
@@ -138,16 +139,27 @@ printf '%q ' "$@" >> "$GIT_ARG_LOG"
 printf '\n' >> "$GIT_ARG_LOG"
 if [[ "${1:-}" == push && ! -e "$GIT_INJECTED" ]]; then
   : > "$GIT_INJECTED"
-  competitor="$(mktemp -d)"
+  competitor="$(mktemp -d "$ROOT/competitor-XXXXXX")"
   remote="$($REAL_GIT remote get-url origin)"
-  "$REAL_GIT" clone --quiet --branch gh-pages "$remote" "$competitor"
+  if [[ "${GIT_INJECT_ORPHAN:-0}" == 1 ]]; then
+    "$REAL_GIT" clone --quiet "$remote" "$competitor"
+    "$REAL_GIT" -C "$competitor" switch --orphan gh-pages >/dev/null 2>&1
+  else
+    "$REAL_GIT" clone --quiet --branch gh-pages "$remote" "$competitor"
+  fi
   (
     cd "$competitor"
     "$REAL_GIT" config user.name competitor
     "$REAL_GIT" config user.email competitor@example.invalid
-    mkdir -p sibling
-    printf concurrent > sibling/index.html
-    "$REAL_GIT" add sibling/index.html
+    if [[ "${GIT_INJECT_CONFLICT:-0}" == 1 ]]; then
+      mkdir -p "$INPUT_DESTINATION_DIR"
+      printf competitor > "$INPUT_DESTINATION_DIR/index.html"
+      "$REAL_GIT" add "$INPUT_DESTINATION_DIR/index.html"
+    else
+      mkdir -p sibling
+      printf concurrent > sibling/index.html
+      "$REAL_GIT" add sibling/index.html
+    fi
     "$REAL_GIT" commit --quiet -m concurrent
     "$REAL_GIT" push --quiet origin gh-pages
   )
@@ -165,5 +177,28 @@ checkout_pages "$ROOT/concurrent-checkout"
 [[ -f "$ROOT/concurrent-checkout/sibling/index.html" ]] || fail 'concurrent sibling update lost'
 [[ -f "$ROOT/concurrent-checkout/allure/pr-7/index.html" ]] || fail 'publication lost after retry'
 pass 'retries a lease conflict and preserves the concurrent sibling update'
+
+new_remote concurrent-orphan
+GIT_ARG_LOG="$ROOT/git-args-orphan.log"
+GIT_INJECTED="$ROOT/injected-orphan"
+export GIT_INJECT_ORPHAN=1
+unset GIT_INJECT_CONFLICT
+INPUT_DESTINATION_DIR='allure/pr-8'
+output="$(run_action 2>&1)"
+[[ "$output" == *'Concurrent update detected; retrying gh-pages push.'* ]] || fail 'orphan concurrent retry not observed'
+checkout_pages "$ROOT/concurrent-orphan-checkout"
+[[ -f "$ROOT/concurrent-orphan-checkout/sibling/index.html" ]] || fail 'orphan competitor publication lost'
+[[ -f "$ROOT/concurrent-orphan-checkout/allure/pr-8/index.html" ]] || fail 'orphan publication lost after retry'
+pass 'combines unrelated concurrent orphan histories without losing either publication'
+
+new_remote concurrent-conflict
+seed_pages bash -c 'mkdir -p docs; printf base > docs/index.html'
+GIT_ARG_LOG="$ROOT/git-args-conflict.log"
+GIT_INJECTED="$ROOT/injected-conflict"
+unset GIT_INJECT_ORPHAN
+export GIT_INJECT_CONFLICT=1
+INPUT_DESTINATION_DIR='allure/pr-9'
+expect_fail '::error::unable to rebase onto origin/gh-pages before publishing allure/pr-9 (possible content conflict)' run_action
+pass 'reports a concurrent same-destination rebase conflict through the action error convention'
 
 printf '1..%d\n' "$PASS"
