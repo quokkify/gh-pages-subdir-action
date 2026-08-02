@@ -5,7 +5,8 @@
   "changelog-path": "CHANGELOG.md",
   "packages": {
     ".": {
-      "package-name": "gh-pages-subdir-action"
+      "package-name": "gh-pages-subdir-action",
+      "initial-version": "0.1.0"
     }
   }
 }
