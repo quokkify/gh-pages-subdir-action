@@ -38,50 +38,22 @@ jobs:
           bash -n deploy-gh-pages-subdir.sh tests/integration.sh
           shellcheck deploy-gh-pages-subdir.sh tests/integration.sh
           actionlint
-      - name: Validate Release Please bootstrap config
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          GH_EVENT_NAME: ${{ github.event_name }}
+      - name: Validate Release Please config schema
         run: |
-          python3 - <<'PY'
-          import os
-          import json
-          import subprocess
-          from pathlib import Path
-
-          def fail(msg: str) -> None:
-              raise SystemExit(msg)
-
-          config = json.loads(Path('.github/release-please/config.json').read_text())
-          initial_version = config['packages']['.'].get('initial-version')
-          if initial_version != '0.1.0':
-              fail(f'Expected release-please initial-version for path "." to be "0.1.0", got {initial_version!r}')
-
-          if os.environ.get('GH_EVENT_NAME') != 'pull_request':
-              print('Skipping manifest bootstrap version guard outside pull_request event.')
-          else:
-              base_ref = os.environ.get('BASE_REF')
-              if not base_ref:
-                  fail('Missing base_ref for pull_request event')
-
-              changed = subprocess.check_output(
-                  ['git', 'diff', '--name-only', f'origin/{base_ref}...HEAD', '.github/release-please/manifest.json'],
-                  text=True,
-                  cwd='.',
-              ).splitlines()
-
-              if '.github/release-please/manifest.json' in changed:
-                  print('Skipping manifest bootstrap version guard (manifest is changing in this PR).')
-              else:
-                  manifest = json.loads(Path('.github/release-please/manifest.json').read_text())
-                  current_version = manifest.get('.')
-                  if current_version != '0.0.0':
-                      fail(f'Expected manifest version to stay at "0.0.0" during config bootstrap checks, got {current_version!r}')
-
-                  print('Release Please bootstrap guard passed for manifest bootstrap path')
-
-          print('Release Please config guard passed')
-          PY
+          npx --yes --package release-please@latest release-please debug-config \
+            --config-file .github/release-please/config.json \
+            --manifest-file .github/release-please/manifest.json \
+            --repo-url https://github.com/quokkify/gh-pages-subdir-action
+      - name: Validate Release Please bootstrap and manifest transition guard
+        env:
+          INPUT_EVENT_NAME: ${{ github.event_name }}
+          INPUT_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python3 tests/release-please-guard.py \
+            --config .github/release-please/config.json \
+            --manifest .github/release-please/manifest.json \
+            --event-name "$INPUT_EVENT_NAME" \
+            --event-path "$INPUT_EVENT_PATH"
       - name: Check diff whitespace
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -103,7 +75,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Run deterministic integration tests
-        run: bash tests/integration.sh
+        run: |
+          bash tests/integration.sh
+          python3 tests/release-please-guard.py --simulate
 
   gitleaks:
     name: Gitleaks
