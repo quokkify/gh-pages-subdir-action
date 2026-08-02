@@ -17,6 +17,8 @@ jobs:
     name: Shell and metadata lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RELEASE_PLEASE_VERSION: 17.6.0
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,9 +37,34 @@ jobs:
           install -m 0755 actionlint /usr/local/bin/actionlint
       - name: Validate shell and Action metadata
         run: |
-          bash -n deploy-gh-pages-subdir.sh tests/integration.sh
-          shellcheck deploy-gh-pages-subdir.sh tests/integration.sh
+          bash -n deploy-gh-pages-subdir.sh tests/integration.sh tests/release-please-schema-contract.sh
+          shellcheck deploy-gh-pages-subdir.sh tests/integration.sh tests/release-please-schema-contract.sh
           actionlint
+      - name: Validate Release Please config schema
+        env:
+          TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+          REPO_URL: https://github.com/${{ github.repository }}
+        run: |
+          npx --yes --package "release-please@${RELEASE_PLEASE_VERSION}" release-please debug-config \
+            --config-file .github/release-please/config.json \
+            --manifest-file .github/release-please/manifest.json \
+            --repo-url "$REPO_URL" \
+            --target-branch "$TARGET_BRANCH"
+      - name: Validate Release Please schema contract and regression cases
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          bash tests/release-please-schema-contract.sh
+      - name: Validate Release Please bootstrap and manifest transition guard
+        env:
+          INPUT_EVENT_NAME: ${{ github.event_name }}
+          INPUT_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python3 tests/release-please-guard.py \
+            --config .github/release-please/config.json \
+            --manifest .github/release-please/manifest.json \
+            --event-name "$INPUT_EVENT_NAME" \
+            --event-path "$INPUT_EVENT_PATH"
       - name: Check diff whitespace
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -59,7 +86,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Run deterministic integration tests
-        run: bash tests/integration.sh
+        run: |
+          bash tests/integration.sh
+          python3 tests/release-please-guard.py --simulate
 
   gitleaks:
     name: Gitleaks
