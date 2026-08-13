@@ -57,9 +57,20 @@ jobs:
               source_path = Path(str(answers.get("allure_external_workflow_path", "")))
               if not source_path.is_file():
                   raise SystemExit("external Allure reporting requires its configured source workflow")
+              def valid_artifact_counts(minimum, maximum):
+                  return (
+                      isinstance(minimum, int)
+                      and not isinstance(minimum, bool)
+                      and isinstance(maximum, int)
+                      and not isinstance(maximum, bool)
+                      and 1 <= minimum <= maximum <= 50
+                  )
+
+              if valid_artifact_counts(True, 1) or valid_artifact_counts(1, True):
+                  raise SystemExit("boolean Allure artifact counts must be rejected")
               minimum = answers.get("allure_external_artifact_min_count")
               maximum = answers.get("allure_external_artifact_max_count")
-              if not isinstance(minimum, int) or not isinstance(maximum, int) or not 1 <= minimum <= maximum <= 50:
+              if not valid_artifact_counts(minimum, maximum):
                   raise SystemExit("external Allure artifact counts must satisfy 1 <= minimum <= maximum <= 50")
           categories_file = answers.get("allure_categories_file")
           if categories_file and not Path(str(categories_file)).is_file():
