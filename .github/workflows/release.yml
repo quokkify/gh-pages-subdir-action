@@ -3,13 +3,18 @@ name: Release Please
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
-    uses: quokkify/project-toolkit/.github/workflows/release-please.yml@v2.18.1
+    uses: quokkify/project-toolkit/.github/workflows/release-please.yml@v2.19.1
     with:
       mode: single
