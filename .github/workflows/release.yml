@@ -15,6 +15,6 @@ concurrency:
 
 jobs:
   release:
-    uses: quokkify/project-toolkit/.github/workflows/release-please.yml@v2.19.2
+    uses: quokkify/project-toolkit/.github/workflows/release-please.yml@v2.20.0
     with:
       mode: single
