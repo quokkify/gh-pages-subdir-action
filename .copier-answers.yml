@@ -1,4 +1,4 @@
-_commit: v2.24.0
+_commit: v2.25.0
 _src_path: https://github.com/quokkify/project-toolkit.git
 allure_categories_file: ''
 allure_external_artifact_max_count: 2
@@ -11,17 +11,18 @@ allure_publish_pages: true
 allure_report: true
 codeql: true
 codeql_languages:
-- actions
-- python
+  - actions
+  - python
 components: []
 docker: false
 gitleaks: true
 project_name: GitHub Pages Subdirectory Action
+q4j_tests: false
 release_mode: single
 release_please: true
 renovate: true
 renovate_config_repository: quokkify/renovate-presets
 renovate_presets:
-- default
-- github-actions
-toolkit_version: v2.24.0
+  - default
+  - github-actions
+toolkit_version: v2.25.0
