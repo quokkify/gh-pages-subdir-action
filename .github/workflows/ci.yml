@@ -44,8 +44,10 @@ jobs:
         env:
           TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
           REPO_URL: https://github.com/${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           npx --yes --package "release-please@${RELEASE_PLEASE_VERSION}" release-please debug-config \
+            --token "$GITHUB_TOKEN" \
             --config-file .github/release-please/config.json \
             --manifest-file .github/release-please/manifest.json \
             --repo-url "$REPO_URL" \
