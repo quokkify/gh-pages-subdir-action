@@ -30,7 +30,7 @@ module: legacy
 handed_off:
   - validate
 codeql_aggregate: false
-gitleaks_job_name: gitleaks
+gitleaks_job_name: Scan Git history and current tree
 gitleaks_scan: history
 gitleaks_aggregate: false
 allure_group_by:
