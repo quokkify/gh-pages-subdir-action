@@ -1,4 +1,4 @@
-_commit: v4.0.1
+_commit: v4.1.0
 _src_path: https://github.com/quokkify/ci-kit.git
 allure_categories_file: ""
 allure_external_artifact_max_count: 2
@@ -15,4 +15,4 @@ allure_publish_pages: true
 allure_source: external
 module: allure
 project_name: GitHub Pages Subdirectory Action
-toolkit_version: v4.0.1
+toolkit_version: v4.1.0
