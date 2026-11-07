@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.1.2](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.1...v0.1.2) (2026-11-07)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 2 fixed · 51 internal
+
+### 🐛 Fixed
+
+- **ci:** restore rendered validate.yml contract ([#42](https://github.com/quokkify/gh-pages-subdir-action/pull/42))
+- **release:** show dependency updates in release notes ([#46](https://github.com/quokkify/gh-pages-subdir-action/pull/46))
+
+<details><summary>Internal changes (51 PRs)</summary>
+
+**Dependencies**
+
+- actions/upload-artifact v7.0.1 → v7.0.2 ([#41](https://github.com/quokkify/gh-pages-subdir-action/pull/41))
+
+**Maintenance**
+
+- authenticate release-please debug-config ([#55](https://github.com/quokkify/gh-pages-subdir-action/pull/55))
+- **ci-kit:** hand off base, security, release, allure, renovate to modules ([#60](https://github.com/quokkify/gh-pages-subdir-action/pull/60))
+- **ci-kit:** hand off validate to core module ([#45](https://github.com/quokkify/gh-pages-subdir-action/pull/45))
+- **ci-kit:** prepare for the legacy template exit ([#59](https://github.com/quokkify/gh-pages-subdir-action/pull/59))
+- **template:** resolve Copier update conflicts ([#11](https://github.com/quokkify/gh-pages-subdir-action/pull/11))
+- **template:** update shared project template (40 PRs, [#10](https://github.com/quokkify/gh-pages-subdir-action/pull/10)–[#66](https://github.com/quokkify/gh-pages-subdir-action/pull/66))
+- **template:** update shared project template to v2.17.0 ([#15](https://github.com/quokkify/gh-pages-subdir-action/pull/15))
+- **template:** update shared project template to v2.18.0 ([#16](https://github.com/quokkify/gh-pages-subdir-action/pull/16))
+- update project-toolkit to v2.12.4 ([#13](https://github.com/quokkify/gh-pages-subdir-action/pull/13))
+- **template:** update shared project template
+- **template:** update shared project template
+
+</details>
+
 ## [0.1.1](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.0...v0.1.1) (2026-08-03)
 
 
