@@ -1,0 +1,4 @@
+_commit: v4.1.0
+_src_path: https://github.com/quokkify/ci-kit.git
+module: labels
+toolkit_version: v4.1.0
