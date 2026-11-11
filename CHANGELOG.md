@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.2...v0.1.3) (2026-11-11)
+
+
+### 🧹 Chores
+
+* **ci-kit:** add labels module ([#64](https://github.com/quokkify/gh-pages-subdir-action/issues/64)) ([d46729a](https://github.com/quokkify/gh-pages-subdir-action/commit/d46729a358a36849f5c0b86971b3b67dbaac36c2))
+* **template:** update shared project template ([#67](https://github.com/quokkify/gh-pages-subdir-action/issues/67)) ([a035989](https://github.com/quokkify/gh-pages-subdir-action/commit/a035989d7b2d75c9b1ab7f3bf2b2e06ff7113e2d))
+* **template:** update shared project template ([#69](https://github.com/quokkify/gh-pages-subdir-action/issues/69)) ([e97d7e9](https://github.com/quokkify/gh-pages-subdir-action/commit/e97d7e9d96bf238760dfbbaa0ec189d71264a4d4))
+* **template:** update shared project template ([#70](https://github.com/quokkify/gh-pages-subdir-action/issues/70)) ([ca28e47](https://github.com/quokkify/gh-pages-subdir-action/commit/ca28e477f338b60b5fac592d4025edb48ccbb0e8))
+* **template:** update shared project template ([#71](https://github.com/quokkify/gh-pages-subdir-action/issues/71)) ([c26833a](https://github.com/quokkify/gh-pages-subdir-action/commit/c26833a264848bfc768deadaadc0047b23cb77eb))
+* **template:** update shared project template ([#72](https://github.com/quokkify/gh-pages-subdir-action/issues/72)) ([282a925](https://github.com/quokkify/gh-pages-subdir-action/commit/282a9259ec438422d7952071a9a44e8c22a50282))
+
 ## [0.1.2](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.1...v0.1.2) (2026-11-07)
 
 <!-- project-toolkit:release-notes v2 -->
