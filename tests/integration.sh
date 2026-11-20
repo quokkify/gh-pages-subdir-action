@@ -199,6 +199,25 @@ checkout_pages "$ROOT/nested-first-checkout"
 pass 'creates missing nested destination parents on first publish'
 unset INPUT_DESTINATION_DIR
 
+# Regression guards: spellings that a case-insensitive or Windows filesystem
+# maps onto .git must be rejected by name on every platform.
+new_remote git-name-variants
+seed_pages bash -c 'mkdir -p docs; printf docs > docs/index.html'
+tip="$(remote_tip)"
+INPUT_DESTINATION_DIR='.GIT/pr-1' expect_fail "destination-dir component '.GIT' is reserved for Git metadata" run_action
+INPUT_DESTINATION_DIR='.git./pr-1' expect_fail "destination-dir component '.git.' is reserved for Git metadata" run_action
+INPUT_DESTINATION_DIR='docs/.Git /pr-1' expect_fail "destination-dir component 'docs/.Git ' is reserved for Git metadata" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'Git metadata name variant published a commit'
+pass 'rejects case and trailing-dot spellings of .git components'
+unset INPUT_DESTINATION_DIR
+
+new_remote nojekyll-symlink
+seed_pages bash -c 'mkdir -p docs; printf docs > docs/index.html; ln -s docs/index.html .nojekyll'
+tip="$(remote_tip)"
+expect_fail '.nojekyll at the pages branch root is a symbolic link' run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked .nojekyll published a commit'
+pass 'rejects a symlinked .nojekyll before writing'
+
 new_remote concurrent
 seed_pages bash -c 'mkdir -p docs; printf base > docs/index.html'
 WRAPPER_DIR="$ROOT/concurrent/bin"

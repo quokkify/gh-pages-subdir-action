@@ -105,20 +105,27 @@ target = os.path.realpath(os.path.join(repo, rel))
 if os.path.commonpath((target, repo)) != repo:
     raise SystemExit(f"{label} resolves outside the pages checkout")
 
-current, walked = repo, []
-for part in rel.split("/"):
-    if part in ("", "."):
-        continue
-    walked.append(part)
-    current = os.path.join(current, part)
-    if os.path.islink(current):
+parts = [part for part in rel.split("/") if part not in ("", ".")]
+# Case-insensitive volumes and Windows path normalisation (trailing dots and
+# spaces) make spellings such as .GIT or ".git." name the metadata directory.
+for index, part in enumerate(parts):
+    if part.rstrip(". ").casefold() == ".git":
         raise SystemExit(
-            f"{label} component '{'/'.join(walked)}' is a symbolic link on the pages branch"
+            f"{label} component '{'/'.join(parts[:index + 1])}' is reserved for Git metadata"
         )
-    if not os.path.lexists(current):
-        break
 
 git_dir = os.path.join(repo, ".git")
+current = repo
+for index, part in enumerate(parts):
+    walked = "/".join(parts[:index + 1])
+    current = os.path.join(current, part)
+    if os.path.islink(current):
+        raise SystemExit(f"{label} component '{walked}' is a symbolic link on the pages branch")
+    if not os.path.lexists(current):
+        break
+    if os.path.samefile(current, git_dir):
+        raise SystemExit(f"{label} component '{walked}' is the Git metadata directory")
+
 if target == repo and not allow_root:
     raise SystemExit(f"{label} resolves to the root of the pages checkout")
 if os.path.commonpath((target, git_dir)) == git_dir:
@@ -130,6 +137,7 @@ PY
 }
 
 DEST="$(resolve_pages_path "$INPUT_DESTINATION_DIR" destination-dir 0)"
+[[ ! -L "$R/.nojekyll" ]] || error ".nojekyll at the pages branch root is a symbolic link"
 mkdir -p "$DEST"
 rsync -a --delete "$PUB/" "$DEST/"
 

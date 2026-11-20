@@ -35,7 +35,7 @@ When retention is enabled, the destination basename must be `pr-N`. Other siblin
 ## Safety properties
 
 - Rejects absolute paths, traversal, workspace/checkout escapes through symlinks, and `.git` destination components.
-- Fails before writing or deleting anything when an existing destination component on the Pages branch is a symbolic link, or when the destination resolves to the checkout root or into Git metadata. Retention applies the same checks to the base directory and to each pruned entry.
+- Fails before writing or deleting anything when an existing destination component on the Pages branch is a symbolic link, or when the destination resolves to the checkout root or into Git metadata, including spellings such as `.GIT` or `.git.` that case-insensitive or Windows filesystems treat as `.git`, and when `.nojekyll` at the branch root is a symbolic link. Retention applies the same checks to the base directory and to each pruned entry.
 - Disables repository hooks for internal Git operations as defense in depth.
 - Keeps the token in `GIT_ASKPASS`, never in the remote URL or Git command arguments.
 - Preserves sibling paths and creates an orphan Pages branch when needed.
