@@ -89,17 +89,47 @@ else
   git rm -rf --quiet . 2>/dev/null || true
 fi
 
-DEST="$(python3 - "$R" "$INPUT_DESTINATION_DIR" <<'PY'
+# Resolve a path inside the pages checkout, failing closed before any write or
+# delete. realpath alone is not enough: a symlink committed on the pages branch
+# can keep the resolved path inside the checkout while redirecting it to the
+# checkout root, into .git, or onto a sibling path.
+resolve_pages_path() {
+  local rel="$1" label="$2" allow_root="$3" resolved
+  resolved="$(python3 - "$R" "$rel" "$label" "$allow_root" 2>&1 <<'PY'
 import os
 import sys
 
 repo = os.path.realpath(sys.argv[1])
-destination = os.path.realpath(os.path.join(repo, sys.argv[2]))
-if os.path.commonpath((destination, repo)) != repo:
-    raise SystemExit("destination-dir resolves outside the pages checkout")
-print(destination)
+rel, label, allow_root = sys.argv[2], sys.argv[3], sys.argv[4] == "1"
+target = os.path.realpath(os.path.join(repo, rel))
+if os.path.commonpath((target, repo)) != repo:
+    raise SystemExit(f"{label} resolves outside the pages checkout")
+
+current, walked = repo, []
+for part in rel.split("/"):
+    if part in ("", "."):
+        continue
+    walked.append(part)
+    current = os.path.join(current, part)
+    if os.path.islink(current):
+        raise SystemExit(
+            f"{label} component '{'/'.join(walked)}' is a symbolic link on the pages branch"
+        )
+    if not os.path.lexists(current):
+        break
+
+git_dir = os.path.join(repo, ".git")
+if target == repo and not allow_root:
+    raise SystemExit(f"{label} resolves to the root of the pages checkout")
+if os.path.commonpath((target, git_dir)) == git_dir:
+    raise SystemExit(f"{label} resolves into the Git metadata directory")
+print(target)
 PY
-)" || error "destination-dir resolves outside the pages checkout"
+)" || error "$resolved"
+  printf '%s\n' "$resolved"
+}
+
+DEST="$(resolve_pages_path "$INPUT_DESTINATION_DIR" destination-dir 0)"
 mkdir -p "$DEST"
 rsync -a --delete "$PUB/" "$DEST/"
 
@@ -109,6 +139,7 @@ prune_old_reports() {
   local parent dest_name candidate rel timestamp
   parent="${INPUT_DESTINATION_DIR%/*}"
   [[ "$parent" != "$INPUT_DESTINATION_DIR" ]] || parent="."
+  resolve_pages_path "$parent" "retention base" 1 >/dev/null
 
   local -a entries=()
   for candidate in "$R/$parent"/pr-*; do
@@ -117,6 +148,7 @@ prune_old_reports() {
     [[ "$dest_name" =~ ^pr-[0-9]+$ ]] || continue
     rel="${parent%/.}/$dest_name"
     [[ "$parent" != "." ]] || rel="$dest_name"
+    resolve_pages_path "$rel" "retention entry" 0 >/dev/null
     if [[ "$rel" == "$INPUT_DESTINATION_DIR" ]]; then
       # The publication in this run is always the newest entry, even when two
       # commits share the same second-level Git timestamp.

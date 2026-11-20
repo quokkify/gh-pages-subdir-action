@@ -141,6 +141,64 @@ INPUT_DESTINATION_DIR='allure/pr-9' expect_fail 'destination-dir resolves outsid
 pass 'rejects destination symlink traversal'
 unset INPUT_DESTINATION_DIR OUTSIDE_DEST
 
+remote_tip() {
+  "$REAL_GIT" --git-dir="$REMOTE" rev-parse --verify --quiet refs/heads/gh-pages
+}
+
+# Regression guards: a symlink committed on the pages branch must never redirect
+# a publication into Git metadata, the checkout root, or a sibling path.
+new_remote symlink-git-parent
+seed_pages ln -s .git allure
+tip="$(remote_tip)"
+INPUT_DESTINATION_DIR='allure/pr-1' expect_fail "destination-dir component 'allure' is a symbolic link" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked .git parent published a commit'
+INPUT_DESTINATION_DIR='allure' expect_fail "destination-dir component 'allure' is a symbolic link" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked .git destination published a commit'
+pass 'rejects destinations routed into Git metadata through a symlink'
+
+new_remote symlink-root-parent
+seed_pages ln -s . allure
+tip="$(remote_tip)"
+INPUT_DESTINATION_DIR='allure/pr-1' expect_fail "destination-dir component 'allure' is a symbolic link" run_action
+INPUT_DESTINATION_DIR='allure' expect_fail "destination-dir component 'allure' is a symbolic link" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked checkout-root destination published a commit'
+pass 'rejects destinations routed to the checkout root through a symlink'
+
+new_remote symlink-deep-component
+seed_pages bash -c 'mkdir -p allure/nested docs reports; printf docs > docs/index.html; ln -s ../../docs allure/nested/pr-1; ln -s ../docs reports/latest'
+tip="$(remote_tip)"
+INPUT_DESTINATION_DIR='allure/nested/pr-1' expect_fail "destination-dir component 'allure/nested/pr-1' is a symbolic link" run_action
+INPUT_DESTINATION_DIR='reports/latest/pr-2' expect_fail "destination-dir component 'reports/latest' is a symbolic link" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked deeper component published a commit'
+checkout_pages "$ROOT/symlink-deep-checkout"
+[[ "$(<"$ROOT/symlink-deep-checkout/docs/index.html")" == docs ]] || fail 'symlinked component overwrote sibling docs'
+pass 'rejects symlinks in deeper destination components'
+
+new_remote symlink-prune-base
+seed_pages bash -c 'mkdir -p real-reports/pr-1; printf keep > real-reports/pr-1/index.html; ln -s real-reports reports'
+tip="$(remote_tip)"
+INPUT_DESTINATION_DIR='reports/pr-2' INPUT_RETENTION_COUNT=1 expect_fail "destination-dir component 'reports' is a symbolic link" run_action
+[[ "$(remote_tip)" == "$tip" ]] || fail 'symlinked retention base published a commit'
+pass 'does not prune through a symlinked retention base'
+
+new_remote symlink-prune-entry
+seed_pages bash -c 'mkdir -p allure/pr-1 docs/pr-5; printf docs > docs/pr-5/index.html; printf old > allure/pr-1/index.html; ln -s ../docs/pr-5 allure/pr-2'
+INPUT_DESTINATION_DIR='allure/pr-3' INPUT_RETENTION_COUNT=1 run_action >/dev/null
+checkout_pages "$ROOT/symlink-prune-entry-checkout"
+[[ -f "$ROOT/symlink-prune-entry-checkout/allure/pr-3/index.html" ]] || fail 'publication missing beside symlinked entry'
+[[ ! -e "$ROOT/symlink-prune-entry-checkout/allure/pr-1" ]] || fail 'old real report not pruned'
+[[ "$(<"$ROOT/symlink-prune-entry-checkout/docs/pr-5/index.html")" == docs ]] || fail 'pruning followed a symlinked entry'
+pass 'does not prune through a symlinked pr-N entry'
+unset INPUT_DESTINATION_DIR INPUT_RETENTION_COUNT
+
+new_remote nested-first-publish
+seed_pages bash -c 'mkdir -p docs; printf docs > docs/index.html'
+INPUT_DESTINATION_DIR='reports/allure/pr-4' run_action >/dev/null
+checkout_pages "$ROOT/nested-first-checkout"
+[[ -f "$ROOT/nested-first-checkout/reports/allure/pr-4/index.html" ]] || fail 'nested first publication missing'
+pass 'creates missing nested destination parents on first publish'
+unset INPUT_DESTINATION_DIR
+
 new_remote concurrent
 seed_pages bash -c 'mkdir -p docs; printf base > docs/index.html'
 WRAPPER_DIR="$ROOT/concurrent/bin"
