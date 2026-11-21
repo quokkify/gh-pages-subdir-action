@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.3](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.2...v0.1.3) (2026-11-21)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 1 fixed · 6 internal
+
+### 🐛 Fixed
+
+- reject destinations redirected by symlinks on the pages branch — The action now fails without writing anything when a symlink on the Pages branch is part of `destination-dir` or is `.nojekyll`, or when the destination resolves to the branch root or into Git metadata (including spellings like `.GIT`). Pruning no longer follows symlinks. ([#74](https://github.com/quokkify/gh-pages-subdir-action/pull/74))
+
+<details><summary>Internal changes (6 PRs)</summary>
+
+**Maintenance**
+
+- **ci-kit:** add labels module ([#64](https://github.com/quokkify/gh-pages-subdir-action/pull/64))
+- **template:** update shared project template ([#67](https://github.com/quokkify/gh-pages-subdir-action/pull/67), [#69](https://github.com/quokkify/gh-pages-subdir-action/pull/69)–[#72](https://github.com/quokkify/gh-pages-subdir-action/pull/72))
+
+</details>
+
 ## [0.1.2](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.1...v0.1.2) (2026-11-07)
 
 <!-- project-toolkit:release-notes v2 -->
