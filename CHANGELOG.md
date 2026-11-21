@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.4](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.3...v0.1.4) (2026-11-21)
+
+<!-- project-toolkit:release-notes v2 -->
+**At a glance:** 2 internal
+
+<details><summary>Internal changes (2 PRs)</summary>
+
+**Maintenance**
+
+- **renovate:** adopt the supply-chain hardening and stack grouping presets ([#75](https://github.com/quokkify/gh-pages-subdir-action/pull/75))
+- **template:** update shared project template ([#73](https://github.com/quokkify/gh-pages-subdir-action/pull/73))
+
+</details>
+
 ## [0.1.3](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.2...v0.1.3) (2026-11-21)
 
 <!-- project-toolkit:release-notes v2 -->
