@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.3...v0.1.4) (2026-11-21)
+
+
+### 🧹 Chores
+
+* **template:** update shared project template ([#73](https://github.com/quokkify/gh-pages-subdir-action/issues/73)) ([c6cf5cc](https://github.com/quokkify/gh-pages-subdir-action/commit/c6cf5ccacf33e8827abbf695c7f33cda36883d94))
+
 ## [0.1.3](https://github.com/quokkify/gh-pages-subdir-action/compare/v0.1.2...v0.1.3) (2026-11-21)
 
 <!-- project-toolkit:release-notes v2 -->
